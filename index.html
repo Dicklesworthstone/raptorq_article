@@ -221,10 +221,10 @@
     <section class="editorial-container">
         <h2 class="section-title">Packets Are Equations</h2>
         <p>
-            To understand why this isn't magic, we have to stop looking at packets as "chunks of a file" and start looking at them as <strong>Linear Equations</strong>.
+            The key reframing: stop thinking of packets as "chunks of a file" and start thinking of them as <strong>linear equations</strong>.
         </p>
         <p>
-            Let's make it concrete. Suppose your file is four bytes: <code>A=5</code>, <code>B=3</code>, <code>C=7</code>, <code>D=2</code>. Instead of sending those four values directly, you generate encoded packets by XORing subsets:
+            Suppose your file is four bytes: <code>A=5</code>, <code>B=3</code>, <code>C=7</code>, <code>D=2</code>. Instead of sending those four values directly, you generate encoded packets by XORing subsets:
         </p>
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12 font-mono text-sm text-slate-300 leading-relaxed overflow-x-auto">
             <span class="text-slate-500">Packet 1:</span> A ⊕ C = 5 ⊕ 7 = <span class="text-cyan-400">2</span> &nbsp;&nbsp;<span class="text-slate-600">[1,0,1,0]</span><br/>
@@ -331,7 +331,7 @@
             Dense: solving a system of \(K\) random linear equations takes \(O(K^3)\) time (Gaussian Elimination). If your file has 50,000 blocks, \(50,000^3\) is 125 trillion operations. Your CPU would melt before the video started playing.
         </p>
         <p>
-            So we make the equations <strong>sparse</strong>: instead of XORing 50% of the symbols, we XOR only a few (say, 5 or 10). This makes solving fast. But sparsity introduces a new villain: the <strong>Coupon Collector Problem</strong>.
+            So we make the equations <strong>sparse</strong>: instead of XORing 50% of the symbols, we XOR only a few (say, 5 or 10). This makes solving fast. But sparsity introduces the <strong>Coupon Collector Problem</strong>.
         </p>
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12">
             <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-3">A Subtle Failure Mode</div>
@@ -351,7 +351,7 @@
         </div>
 
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12">
-            <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-4">The Probability You Should Tattoo On Your Intuition</div>
+            <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-4">The Key Probability</div>
             <p class="text-slate-300 text-sm leading-relaxed mb-4">
                 Suppose each encoded packet touches exactly \(d\) randomly chosen source symbols. After receiving \(n\) packets, you've made about \(d \cdot n\) random "touches" across \(K\) symbols. Pick one specific symbol \(x_i\). The probability it was <em>never</em> touched is:
             </p>
@@ -372,7 +372,7 @@
 	            We want something that behaves like \(K + O(1)\), not \(K \log K\).
 	        </p>
 	        <p>
-	            The whole story of fountain code design is threading this needle. Dense equations give you solvability but \(O(K^3)\) decoding. Sparse equations give you speed but the coupon collector's log tax on overhead. It seemed like a fundamental tradeoff.
+	            Fountain code design is about navigating this tradeoff. Dense equations give you solvability but \(O(K^3)\) decoding. Sparse equations give you speed but the coupon collector's log tax on overhead.
 	        </p>
 	    </section>
 
@@ -984,7 +984,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">RaptorQ vs. The Alternatives</h2>
 	        <p>
-	            The best way to appreciate RaptorQ is to see what it refuses to be.
+	            How does RaptorQ compare to the other options?
 	        </p>
 	        <div class="overflow-x-auto my-12">
 	            <table class="min-w-[700px] w-full text-sm text-slate-300 border border-white/10 rounded-2xl overflow-hidden">
@@ -1112,7 +1112,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container pb-16">
 	        <h2 class="section-title">Where RaptorQ Lives</h2>
 	        <p>
-	            RaptorQ's properties (fungible symbols, near-zero overhead, linear-time encoding/decoding, ratelessness) don't just make for elegant theory. They fundamentally change the economics of data distribution in the real world.
+	            Fungible symbols, near-zero overhead, linear-time encoding/decoding, ratelessness. These properties change the economics of data distribution.
 	        </p>
 	        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -1194,9 +1194,9 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	        </div>
 
 	        <!-- Author's Projects -->
-	        <h3 class="text-3xl font-bold text-white mt-20 mb-4">Beyond Networking: Fountain Codes as a Systems Primitive</h3>
+	        <h3 class="text-3xl font-bold text-white mt-20 mb-4">Fountain Codes as a Systems Primitive</h3>
 	        <p>
-	            The deployments above use RaptorQ the way its inventors intended: as a network transport layer. But what happens when you treat fountain codes not as a wire protocol but as a <em>foundational abstraction</em> for building systems? Three projects by the author of this article explore that question.
+	            The deployments above use RaptorQ as a network transport layer. But fountain codes can also serve as a building block for systems that have nothing to do with networking. Three projects by the author of this article explore that idea.
 	        </p>
 
 	        <!-- AsuperSync -->
@@ -1279,7 +1279,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30 mt-10">
 	            <p class="text-slate-300 text-sm mb-0">
-	                <strong class="text-white">The pattern across all three projects:</strong> RaptorQ stops being a "network layer" and becomes an <em>information substrate</em>. In FrankenSQLite, every page on disk is fountain-coded. In asupersync, every runtime state checkpoint is fountain-coded. In Flywheel Connectors, every object in transit is fountain-coded. The "any \(K\) of \(N\)" property extends beyond surviving packet loss. It enables systems where data integrity is a mathematical invariant rather than a best-effort aspiration.
+	                <strong class="text-white">The common thread:</strong> In all three projects, RaptorQ moves from the network layer into the storage and runtime layers. FrankenSQLite fountain-codes every page on disk. Asupersync fountain-codes every runtime checkpoint. Flywheel Connectors fountain-codes every object in transit. The "any \(K\) of \(N\)" property makes data integrity a mathematical guarantee rather than a best-effort goal.
 	            </p>
 	        </div>
 	    </section>
