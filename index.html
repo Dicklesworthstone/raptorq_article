@@ -140,7 +140,7 @@
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">Liquid Data.</span>
             </h1>
 	        <p class="text-2xl md:text-3xl text-slate-400 max-w-3xl mx-auto leading-tight mt-12 font-light">
-	                Turning rigid files into a probabilistic stream, defying the laws of data gravity with <span class="text-white font-medium italic">O(1)</span> extra packets.
+	                How a sparse matrix, a small dense core, and a precode turn any file into a stream of fungible packets, recoverable from <span class="text-white font-medium italic">K + 2</span> of them.
 	        </p>
         </div>
         
@@ -152,17 +152,17 @@
 
     <!-- Intro -->
     <article class="editorial-container">
-        <p class="drop-cap first-letter:text-9xl first-letter:font-extrabold first-letter:text-transparent first-letter:bg-clip-text first-letter:bg-gradient-to-br first-letter:from-cyan-400 first-letter:to-blue-600 first-letter:float-left first-letter:mr-8 first-letter:mt-[-8px] first-letter:leading-[0.75]">
+        <p class="drop-cap">
             Suppose you are trying to stream a 4K video to a Mars rover. The round-trip latency is 40 minutes. Or perhaps you are broadcasting a critical firmware update to a million cars simultaneously over a patchy cellular network.
         </p>
         <p>
-            The traditional way we move data—TCP—is fundamentally a conversation. "I sent packet 4." "I didn't get packet 4." "Okay, resending packet 4." "Okay, got it." This conversational model works fine for loading a webpage, but it falls apart at scale or extreme latency. It requires a feedback loop. It requires the sender to know exactly what the receiver is missing.
+            TCP, the traditional way we move data, is fundamentally a conversation. "I sent packet 4." "I didn't get packet 4." "Okay, resending packet 4." "Okay, got it." This conversational model works fine for loading a webpage, but it falls apart at scale or extreme latency. It requires a feedback loop. It requires the sender to know exactly what the receiver is missing.
         </p>
         <p>
             But imagine a different world. Imagine you don't care about "Packet #4." Imagine you could turn your file into a <strong class="text-cyan-300 shadow-cyan-500/20 drop-shadow-sm">mathematical liquid</strong>. You open the valve and spray packets at the receiver. The receiver is just a bucket. It doesn't matter <em>which</em> drops of liquid land in the bucket. It doesn't matter if half the spray blows away in the wind.
         </p>
 	        <p>
-	            As soon as the bucket is full—roughly \(K+\epsilon\) drops (a tiny overhead), not a particular set—the receiver reconstructs the data.
+	            As soon as the bucket is full, roughly \(K+\epsilon\) drops (a tiny overhead) rather than a particular set, the receiver reconstructs the data.
 	        </p>
         
         <div class="insight-card group">
@@ -172,7 +172,7 @@
             <div class="relative z-10">
 	            <h3 class="text-3xl font-bold text-white mb-6">The Impossible Promise</h3>
 	            <p class="text-slate-400 text-lg mb-0 leading-relaxed">
-	                This isn't sci-fi. It's <strong>RaptorQ (RFC 6330)</strong>. The RFC has a SHALL-level decoder requirement: if you receive encoding symbols whose IDs are chosen uniformly at random, the <em>average</em> decode failure rate must be at most 1/100 when receiving \(K'\) symbols, 1/10,000 at \(K'+1\), and 1/1,000,000 at \(K'+2\).<br/><br/>
+	                This is <strong>RaptorQ (RFC 6330)</strong>. The RFC has a SHALL-level decoder requirement: if you receive encoding symbols whose IDs are chosen uniformly at random, the <em>average</em> decode failure rate must be at most 1/100 when receiving \(K'\) symbols, 1/10,000 at \(K'+1\), and 1/1,000,000 at \(K'+2\).<br/><br/>
 	                At \(K \approx 10{,}000\), two extra symbols is about <span class="text-cyan-400 font-mono font-bold">0.02%</span> overhead.
 	            </p>
             </div>
@@ -185,7 +185,7 @@
     <section class="editorial-container">
         <h2 class="section-title">What You May Already Know</h2>
         <p>
-            If you've ever used <strong>PAR2 files</strong> to repair a corrupted download, or relied on RAID 5 to survive a dead drive, you've already seen the seed of this idea. PAR2 uses Reed-Solomon codes to generate repair blocks from your original data. Lose a few files? Throw in some <code>.par2</code> recovery blocks, and the repair tool reconstructs the missing pieces. Any recovery block helps—you don't need specific ones.
+            If you've ever used <strong>PAR2 files</strong> to repair a corrupted download, or relied on RAID 5 to survive a dead drive, you've already seen the seed of this idea. PAR2 uses Reed-Solomon codes to generate repair blocks from your original data. Lose a few files? Throw in some <code>.par2</code> recovery blocks, and the repair tool reconstructs the missing pieces. Any recovery block helps; you don't need specific ones.
         </p>
         <p>
             Reed-Solomon is powerful. It achieves what coding theorists call <strong>MDS</strong> (Maximum Distance Separable) behavior: any \(K\) of \(K+R\) encoded symbols perfectly reconstruct \(K\) source symbols. Zero overhead. Mathematically optimal.
@@ -197,7 +197,7 @@
             <div class="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-10 transition-all duration-500 hover:border-cyan-500/30 group">
                 <h4 class="text-white font-bold mb-5 text-xl group-hover:text-cyan-400 transition-colors">You must choose \(R\) in advance</h4>
                 <p class="text-sm text-slate-400 leading-relaxed mb-0 font-light">
-                    Reed-Solomon is <strong>fixed-rate</strong>. You pick your redundancy budget before you send anything. If the channel is worse than expected, you're dead. If it's better, you wasted bandwidth. For a satellite broadcasting to a million receivers—each with different loss rates—there is no single right \(R\).
+                    Reed-Solomon is <strong>fixed-rate</strong>. You pick your redundancy budget before you send anything. If the channel is worse than expected, you're dead. If it's better, you wasted bandwidth. For a satellite broadcasting to a million receivers, each with different loss rates, there is no single right \(R\).
                 </p>
             </div>
             <div class="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-10 transition-all duration-500 hover:border-purple-500/30 group">
@@ -868,10 +868,10 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">The Cryptographic Cousin</h2>
 	        <p>
-	            Before we compare RaptorQ to other erasure codes, it's worth taking a detour into cryptography—because the most illuminating parallel to fountain codes comes from an unexpected place.
+	            Before we compare RaptorQ to other erasure codes, a detour into cryptography is in order. The most illuminating parallel to fountain codes comes from an unexpected place.
 	        </p>
 	        <p>
-	            In 1979, Adi Shamir (the "S" in RSA) published a scheme for splitting a secret into \(N\) pieces such that any \(K\) of them can reconstruct the secret, but \(K-1\) pieces reveal <em>absolutely nothing</em>. It's called <strong>Shamir's Secret Sharing</strong>, and if you squint, it's doing the same thing as a fountain code—with a very different goal in mind.
+	            In 1979, Adi Shamir (the "S" in RSA) published a scheme for splitting a secret into \(N\) pieces such that any \(K\) of them can reconstruct the secret, but \(K-1\) pieces reveal <em>absolutely nothing</em>. It's called <strong>Shamir's Secret Sharing</strong>, and if you squint, it's doing the same thing as a fountain code, with a very different goal in mind.
 	        </p>
 
 	        <div class="insight-card">
@@ -896,7 +896,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	                Share 5: \(f(5) = 42 + 35 + 75 = 152\)
 	            </div>
 	            <p class="text-slate-400 text-sm leading-relaxed mb-0">
-	                To reconstruct the secret, any 3 people pool their shares and use <strong>Lagrange interpolation</strong> to recover the unique degree-2 polynomial passing through their 3 points. The secret is \(f(0) = 42\). It doesn't matter <em>which</em> 3 shares—any subset works.
+	                To reconstruct the secret, any 3 people pool their shares and use <strong>Lagrange interpolation</strong> to recover the unique degree-2 polynomial passing through their 3 points. The secret is \(f(0) = 42\). It doesn't matter <em>which</em> 3 shares. Any subset works.
 	            </p>
 	        </div>
 
@@ -908,10 +908,10 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	            \(S + a_1 \cdot x_i + a_2 \cdot x_i^2 = f(x_i)\)
 	        </div>
 	        <p>
-	            Three shares give you three equations in three unknowns. In matrix form, the coefficient matrix is a <strong>Vandermonde matrix</strong>—guaranteed to be full rank when the evaluation points \(x_i\) are distinct. So three shares always determine a unique polynomial, and hence a unique secret.
+	            Three shares give you three equations in three unknowns. In matrix form, the coefficient matrix is a <strong>Vandermonde matrix</strong>, guaranteed to be full rank when the evaluation points \(x_i\) are distinct. So three shares always determine a unique polynomial, and hence a unique secret.
 	        </p>
 	        <p>
-	            With only two shares, you have two equations and three unknowns. By the <strong>Rank-Nullity Theorem</strong>, the nullity is 1: the secret \(S\) can be <em>any</em> value consistent with those two equations. This is why \(K-1\) shares reveal zero information—it's not a heuristic claim, it's a mathematical proof. Every possible secret is equally compatible with any \(K-1\) shares.
+	            With only two shares, you have two equations and three unknowns. By the <strong>Rank-Nullity Theorem</strong>, the nullity is 1: the secret \(S\) can be <em>any</em> value consistent with those two equations. This is why \(K-1\) shares reveal zero information. This is a mathematical proof, not a heuristic claim. Every possible secret is equally compatible with any \(K-1\) shares.
 	        </p>
 
 	        <h3 class="text-xl font-bold text-white mt-16 mb-6">Same Continent, Different Countries</h3>
@@ -921,7 +921,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	        <ul class="list-disc list-inside space-y-3 text-slate-300 ml-4 mb-10 text-[1.05rem] leading-relaxed">
 	            <li><strong>Linear algebra over finite fields.</strong> Both generate redundant linear measurements of unknown data.</li>
 	            <li><strong>Redundancy through structure, not duplication.</strong> The polynomial (Shamir) or XOR constraint (RaptorQ) encodes relationships, not copies.</li>
-	            <li><strong>Decoding as solving.</strong> Recovery means inverting a matrix—Vandermonde for Shamir, sparse + precode for RaptorQ.</li>
+	            <li><strong>Decoding as solving.</strong> Recovery means inverting a matrix: Vandermonde for Shamir, sparse + precode for RaptorQ.</li>
 	            <li><strong>"Any \(K\) of \(N\)" from rank.</strong> The system is solvable precisely when you have \(K\) independent equations. Which equations is irrelevant.</li>
 	        </ul>
 
@@ -970,11 +970,11 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	        </div>
 
 	        <p>
-	            Reed-Solomon codes—the technology behind PAR files, QR codes, CDs, and deep-space communication—complete the family tree. They're essentially Shamir's Secret Sharing applied to data recovery: evaluate a polynomial at many points, and any \(K\) evaluations recover the degree-\((K-1)\) polynomial via interpolation. Reed-Solomon is MDS-optimal but slow at scale and fixed-rate. Fountain codes sacrifice a sliver of that optimality (you need \(K+\epsilon\) instead of exactly \(K\)) in exchange for dramatic speedups and the rateless property.
+	            Reed-Solomon codes, the technology behind PAR files, QR codes, CDs, and deep-space communication, complete the family tree. They're essentially Shamir's Secret Sharing applied to data recovery: evaluate a polynomial at many points, and any \(K\) evaluations recover the degree-\((K-1)\) polynomial via interpolation. Reed-Solomon is MDS-optimal but slow at scale and fixed-rate. Fountain codes sacrifice a sliver of that optimality (you need \(K+\epsilon\) instead of exactly \(K\)) in exchange for dramatic speedups and the rateless property.
 	        </p>
 
 	        <div class="callout">
-	            If you understand Shamir's Secret Sharing, you're 80% of the way to understanding fountain codes. The leap from "secret sharing" to "erasure coding" is smaller than it appears—and the bridge is the Rank-Nullity Theorem.
+	            If you understand Shamir's Secret Sharing, you're 80% of the way to understanding fountain codes. The leap from "secret sharing" to "erasure coding" is smaller than it appears, and the bridge is the Rank-Nullity Theorem.
 	        </div>
 	    </section>
 
@@ -1074,13 +1074,13 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
 	                <h4 class="text-white font-bold mb-4 text-xl">Triangular Systems &amp; LU Decomposition</h4>
 	                <p class="text-sm text-slate-400 leading-relaxed">
-	                    The peeling process, when it succeeds, produces a <strong>lower triangular matrix</strong> (after reordering rows and columns). Triangular matrices are always full rank, and solving them is \(O(K)\) by back-substitution—no Gaussian elimination needed. This is why peeling is so fast: it's essentially discovering an <strong>LU decomposition</strong> via graph operations, exploiting sparsity. Each peeling step identifies a pivot (a degree-1 check) and eliminates the corresponding variable, building up the triangular structure one row at a time.
+	                    The peeling process, when it succeeds, produces a <strong>lower triangular matrix</strong> (after reordering rows and columns). Triangular matrices are always full rank, and solving them is \(O(K)\) by back-substitution, with no Gaussian elimination needed. This is why peeling is so fast: it's essentially discovering an <strong>LU decomposition</strong> via graph operations, exploiting sparsity. Each peeling step identifies a pivot (a degree-1 check) and eliminates the corresponding variable, building up the triangular structure one row at a time.
 	                </p>
 	            </div>
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
 	                <h4 class="text-white font-bold mb-4 text-xl">The Schur Complement</h4>
 	                <p class="text-sm text-slate-400 leading-relaxed">
-	                    When peeling stalls, inactivation decoding partitions the remaining matrix into blocks. The "active" part \(A\) is eliminated cheaply via peeling. The coupling blocks \(B\) and \(C\) connect it to the small "inactivated core" \(D\). The dense core is then solved via its <strong>Schur complement</strong>: \(D - C \cdot A^{-1} \cdot B\). If the core has \(p\) symbols out of \(L\) total, the dense solve costs \(O(p^3)\) instead of \(O(L^3)\)—and RaptorQ ensures \(p \ll L\). This classical numerical linear algebra technique is the exact reason inactivation keeps overall decoding near-linear.
+	                    When peeling stalls, inactivation decoding partitions the remaining matrix into blocks. The "active" part \(A\) is eliminated cheaply via peeling. The coupling blocks \(B\) and \(C\) connect it to the small "inactivated core" \(D\). The dense core is then solved via its <strong>Schur complement</strong>: \(D - C \cdot A^{-1} \cdot B\). If the core has \(p\) symbols out of \(L\) total, the dense solve costs \(O(p^3)\) instead of \(O(L^3)\), and RaptorQ ensures \(p \ll L\). This classical numerical linear algebra technique is the exact reason inactivation keeps overall decoding near-linear.
 	                </p>
 	            </div>
 		            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -1112,7 +1112,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container pb-16">
 	        <h2 class="section-title">Where RaptorQ Lives</h2>
 	        <p>
-	            RaptorQ's properties—fungible symbols, near-zero overhead, linear-time encoding/decoding, ratelessness—don't just make for elegant theory. They fundamentally change the economics of data distribution in the real world.
+	            RaptorQ's properties (fungible symbols, near-zero overhead, linear-time encoding/decoding, ratelessness) don't just make for elegant theory. They fundamentally change the economics of data distribution in the real world.
 	        </p>
 	        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -1136,13 +1136,13 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
 	                <h4 class="text-white font-bold mb-4 text-xl">Distributed Storage</h4>
 	                <p class="text-sm text-slate-400 leading-relaxed mb-0">
-	                    If you're distributing a file across a storage network (IPFS, BitTorrent, CDN edge nodes), each node can store <em>different</em> encoding symbols. Any subset of nodes holding collectively \(K\) symbols can serve the complete file. No coordination about <em>which</em> symbols each node stores—they're all equally valuable.
+	                    If you're distributing a file across a storage network (IPFS, BitTorrent, CDN edge nodes), each node can store <em>different</em> encoding symbols. Any subset of nodes holding collectively \(K\) symbols can serve the complete file. No coordination about <em>which</em> symbols each node stores. They're all equally valuable.
 	                </p>
 	            </div>
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
 	                <h4 class="text-white font-bold mb-4 text-xl">Hybrid ARQ &amp; Deep Space</h4>
 	                <p class="text-sm text-slate-400 leading-relaxed mb-0">
-	                    In wireless and satellite communication, Hybrid ARQ schemes send initial data and, if that's not enough, send additional repair symbols. With RaptorQ, the repair symbols don't need to be chosen based on what was lost—any new symbols will do. This eliminates per-loss feedback and simplifies the protocol enormously. When your round-trip time is 40 minutes (Mars) or 4 hours (Jupiter), that simplification is existential.
+	                    In wireless and satellite communication, Hybrid ARQ schemes send initial data and, if that's not enough, send additional repair symbols. With RaptorQ, the repair symbols don't need to be chosen based on what was lost; any new symbols will do. This eliminates per-loss feedback and simplifies the protocol enormously. When your round-trip time is 40 minutes (Mars) or 4 hours (Jupiter), that simplification is existential.
 	                </p>
 	            </div>
 	        </div>
@@ -1154,16 +1154,16 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">RaptorQ in the Wild</h2>
 	        <p>
-	            The mathematics above isn't academic. RaptorQ is deployed at scale in systems serving billions of devices—and increasingly, in projects that treat fountain codes not as a networking curiosity but as a foundational primitive.
+	            RaptorQ is deployed at scale in systems serving billions of devices, and increasingly in projects that treat fountain codes as a foundational primitive.
 	        </p>
 
 	        <!-- 3G/4G/5G Cellular -->
 	        <h3 class="text-3xl font-bold text-white mt-16 mb-6">The Cellular Standard</h3>
 	        <p>
-	            In 2005, the 3GPP consortium faced a problem: delivering video, firmware updates, and emergency alerts to millions of handsets simultaneously over cellular. Traditional unicast—one connection per device—doesn't scale. You can't open a million TCP sessions from a single cell tower. The answer was <strong>MBMS</strong> (Multimedia Broadcast/Multicast Service), and MBMS needed an FEC layer that could handle massive fan-out over a lossy wireless channel with zero back-channel.
+	            In 2005, the 3GPP consortium faced a problem: delivering video, firmware updates, and emergency alerts to millions of handsets simultaneously over cellular. Traditional unicast, one connection per device, doesn't scale. You can't open a million TCP sessions from a single cell tower. The answer was <strong>MBMS</strong> (Multimedia Broadcast/Multicast Service), and MBMS needed an FEC layer that could handle massive fan-out over a lossy wireless channel with zero back-channel.
 	        </p>
 	        <p>
-	            They chose Raptor codes—later upgraded to RaptorQ. The specification is <strong>3GPP TS 26.346</strong>, and it makes RaptorQ the mandatory FEC scheme for file delivery and streaming. Every compliant LTE and 5G modem on Earth implements it.
+	            They chose Raptor codes, later upgraded to RaptorQ. The specification is <strong>3GPP TS 26.346</strong>, and it makes RaptorQ the mandatory FEC scheme for file delivery and streaming. Every compliant LTE and 5G modem on Earth implements it.
 	        </p>
 
 	        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 mb-12">
@@ -1189,14 +1189,14 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30">
 	            <p class="text-slate-300 text-sm mb-0">
-	                <strong class="text-white">The common thread:</strong> Every deployment above exploits the same property. The sender doesn't know (or care) how many receivers exist, which symbols each receiver has, or when each receiver started listening. It just sprays symbols. Each receiver independently collects and decodes. This is the "coordination-free" property from the math—\(K\) distinct evaluations of a degree \(K{-}1\) polynomial determine it uniquely, regardless of <em>which</em> evaluations you have.
+	                <strong class="text-white">The common thread:</strong> Every deployment above exploits the same property. The sender doesn't know (or care) how many receivers exist, which symbols each receiver has, or when each receiver started listening. It just sprays symbols. Each receiver independently collects and decodes. This is the "coordination-free" property from the math: \(K\) distinct evaluations of a degree \(K{-}1\) polynomial determine it uniquely, regardless of <em>which</em> evaluations you have.
 	            </p>
 	        </div>
 
 	        <!-- Author's Projects -->
 	        <h3 class="text-3xl font-bold text-white mt-20 mb-4">Beyond Networking: Fountain Codes as a Systems Primitive</h3>
 	        <p>
-	            The deployments above use RaptorQ the way its inventors intended—as a network transport layer. But what happens when you treat fountain codes not as a wire protocol but as a <em>foundational abstraction</em> for building systems? Three projects by the author of this article explore that question.
+	            The deployments above use RaptorQ the way its inventors intended: as a network transport layer. But what happens when you treat fountain codes not as a wire protocol but as a <em>foundational abstraction</em> for building systems? Three projects by the author of this article explore that question.
 	        </p>
 
 	        <!-- AsuperSync -->
@@ -1210,7 +1210,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	                Asupersync is a spec-first async runtime for Rust with a complete, from-scratch RaptorQ implementation. The <code class="text-emerald-400/80">src/raptorq/</code> module spans 10 files: GF(256) arithmetic with precomputed 64KB multiplication tables, systematic encoding with LDPC/HDPC/LT constraint matrices, a two-phase inactivation decoder (peeling first, then Gaussian elimination over the dense core), and deterministic decode proofs for auditable recovery.
 	            </p>
 	            <p class="text-slate-400 text-sm leading-relaxed mb-4">
-	                The key application: <strong>distributed state recovery</strong>. When a runtime "region" (the structured concurrency unit) needs to persist its state across a cluster, it doesn't fully replicate to every node. Instead, the region snapshot is erasure-coded into symbols and distributed via consistent hashing. Recovery requires collecting any \(K\) symbols from surviving nodes—it doesn't matter which \(K\). Storage overhead drops from \(N{\times}\) full replication to roughly \(1.2{\times}\), while fault tolerance <em>increases</em>.
+	                The key application: <strong>distributed state recovery</strong>. When a runtime "region" (the structured concurrency unit) needs to persist its state across a cluster, it doesn't fully replicate to every node. Instead, the region snapshot is erasure-coded into symbols and distributed via consistent hashing. Recovery requires collecting any \(K\) symbols from surviving nodes; it doesn't matter which \(K\). Storage overhead drops from \(N{\times}\) full replication to roughly \(1.2{\times}\), while fault tolerance <em>increases</em>.
 	            </p>
 	            <div class="grid grid-cols-2 gap-4">
 	                <div class="text-xs text-slate-500 bg-slate-800/30 rounded-lg p-3">
@@ -1232,7 +1232,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	            </div>
 	            <h4 class="text-white font-bold text-xl mb-3">A Self-Healing SQLite with Fountain Codes at Every Layer</h4>
 	            <p class="text-slate-300 leading-relaxed mb-4">
-	                FrankenSQLite is a ground-up Rust reimplementation of SQLite that embeds RaptorQ into every persistent layer. The premise: data corruption shouldn't be a failure mode you <em>mitigate</em>—it should be a mathematical near-impossibility. Standard SQLite WAL recovery truncates at the first corrupted frame, discarding all subsequent committed data. FrankenSQLite instead generates repair symbols for each commit group and stores them in a <code class="text-amber-400/80">.wal-fec</code> sidecar.
+	                FrankenSQLite is a ground-up Rust reimplementation of SQLite that embeds RaptorQ into every persistent layer. The premise: data corruption should be a mathematical near-impossibility, not a failure mode you <em>mitigate</em>. Standard SQLite WAL recovery truncates at the first corrupted frame, discarding all subsequent committed data. FrankenSQLite instead generates repair symbols for each commit group and stores them in a <code class="text-amber-400/80">.wal-fec</code> sidecar.
 	            </p>
 	            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 	                <div class="bg-slate-800/30 rounded-lg p-4">
@@ -1244,7 +1244,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	                <div class="bg-slate-800/30 rounded-lg p-4">
 	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">Database-Level FEC</h5>
 	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
-	                        A separate <code class="text-amber-400/60">.db-fec</code> sidecar protects the main database file. Page 1 (the header) gets 400% redundancy. Remaining pages are grouped in 64-page chunks with 6.25% overhead. Corrupted pages are reconstructed on read—transparently, without user intervention.
+	                        A separate <code class="text-amber-400/60">.db-fec</code> sidecar protects the main database file. Page 1 (the header) gets 400% redundancy. Remaining pages are grouped in 64-page chunks with 6.25% overhead. Corrupted pages are reconstructed on read, transparently, without user intervention.
 	                    </p>
 	                </div>
 	                <div class="bg-slate-800/30 rounded-lg p-4">
@@ -1279,7 +1279,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30 mt-10">
 	            <p class="text-slate-300 text-sm mb-0">
-	                <strong class="text-white">The pattern across all three projects:</strong> RaptorQ stops being a "network layer" and becomes an <em>information substrate</em>. In FrankenSQLite, every page on disk is fountain-coded. In asupersync, every runtime state checkpoint is fountain-coded. In Flywheel Connectors, every object in transit is fountain-coded. The "any \(K\) of \(N\)" property isn't just for surviving packet loss—it's for building systems where data integrity is a mathematical invariant, not a best-effort aspiration.
+	                <strong class="text-white">The pattern across all three projects:</strong> RaptorQ stops being a "network layer" and becomes an <em>information substrate</em>. In FrankenSQLite, every page on disk is fountain-coded. In asupersync, every runtime state checkpoint is fountain-coded. In Flywheel Connectors, every object in transit is fountain-coded. The "any \(K\) of \(N\)" property extends beyond surviving packet loss. It enables systems where data integrity is a mathematical invariant rather than a best-effort aspiration.
 	            </p>
 	        </div>
 	    </section>
@@ -1288,21 +1288,21 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	    <!-- Closing Insight -->
 	    <section class="editorial-container pb-32">
-	        <p class="text-3xl font-bold text-center text-white my-16 leading-tight max-w-3xl mx-auto">
+	        <p class="text-3xl font-bold text-center text-white my-16 leading-tight max-w-3xl mx-auto text-balance">
 	            The right mathematical abstraction transforms an apparently intractable problem into a natural one.
 	        </p>
 	        <p>
-	            The trick wasn't any single clever hack. It was recognizing that erasure coding is secretly linear algebra, that linear algebra over finite fields gives you fungibility for free, that the hard part is making the matrix sparse enough to solve fast, and that the solution is a divide-and-conquer strategy: handle the easy 97% with a graph algorithm and the hard 3% with a small amount of dense algebra.
+	            The trick was recognizing that erasure coding is secretly linear algebra, that linear algebra over finite fields gives you fungibility for free, that the hard part is making the matrix sparse enough to solve fast, and that the solution is a divide-and-conquer strategy: handle the easy 97% with a graph algorithm and the hard 3% with a small amount of dense algebra.
 	        </p>
 	        <p>
-	            The fact that this entire edifice—ratelessness, fungibility, near-optimal overhead, linear-time decoding—falls out of combining a sparse fountain layer with a dense inner code is one of the most beautiful results in applied mathematics. It's the kind of thing that makes you want to look at every other seemingly-fundamental tradeoff and ask: is there a Raptor-like decomposition hiding here too?
+	            Ratelessness, fungibility, near-optimal overhead, linear-time decoding—all of it falls out of one structural move: combine a sparse fountain layer with a dense inner code, and let each do what it's good at. The pattern generalizes. Anywhere you see a seemingly fundamental tradeoff between speed and correctness, ask: is there a Raptor-like decomposition hiding here? A fast, sloppy layer that gets you 97% of the way, and a small, precise layer that cleans up the rest?
 	        </p>
 	    </section>
 
     <!-- Footer -->
     <footer class="border-t border-white/10 py-24 bg-[#020203]">
         <div class="editorial-container text-center">
-            <h2 class="text-4xl font-bold text-white mb-8">Built for the Infinite.</h2>
+            <h2 class="text-4xl font-bold text-white mb-8">Sparse + Dense. Fast + Correct.</h2>
             <p class="text-slate-500 mb-12 max-w-lg mx-auto">
                 RaptorQ sits at the intersection of Linear Algebra, Graph Theory, and practical Engineering. It powers the 3GPP MBMS standard, ATSC 3.0, and ROUTE/FLUTE-style multicast delivery.
             </p>
