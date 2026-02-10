@@ -1,5 +1,6 @@
+
 // ============================================
-// RAPTORQ VISUALIZATIONS - ENHANCED EDITION
+// RAPTORQ VISUALIZATIONS - ULTRA ENHANCED
 // ============================================
 
 gsap.registerPlugin(ScrollTrigger);
@@ -9,14 +10,14 @@ const COLORS = {
     cyan: '#22d3ee',
     purple: '#a855f7',
     blue: '#3b82f6',
-    white: '#f8fafc',
-    slate: '#94a3b8',
+    white: '#f1f5f9',
+    slate: '#64748b',
     emerald: '#10b981',
     red: '#ef4444'
 };
 
 // ============================================
-// 1. HERO ANIMATION (THREE.JS) - THE FOUNTAIN
+// 1. HERO ANIMATION (THREE.JS) - THE DATA RAIN
 // ============================================
 window.initHero = function() {
     const container = document.getElementById('hero-canvas');
@@ -24,63 +25,68 @@ window.initHero = function() {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 50;
-    camera.position.y = 15;
+    camera.position.z = 60;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
-    const dropletCount = 2000;
+    // Geometry for symbols
+    const count = 3000;
     const geometry = new THREE.BufferGeometry();
-    const positions = new Float32Array(dropletCount * 3);
-    const colors = new Float32Array(dropletCount * 3);
-    const sizes = new Float32Array(dropletCount);
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count);
+    const colors = new Float32Array(count * 3);
     
     const colorA = new THREE.Color(COLORS.cyan);
     const colorB = new THREE.Color(COLORS.purple);
 
-    function resetDroplet(i) {
-        positions[i * 3] = (Math.random() - 0.5) * 80;
-        positions[i * 3 + 1] = 60 + Math.random() * 40;
-        positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
-        const mixedColor = colorA.clone().lerp(colorB, Math.random());
-        colors[i * 3] = mixedColor.r;
-        colors[i * 3 + 1] = mixedColor.g;
-        colors[i * 3 + 2] = mixedColor.b;
-    }
-
-    for (let i = 0; i < dropletCount; i++) {
-        resetDroplet(i);
-        sizes[i] = Math.random() * 0.8 + 0.2;
+    for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 120;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 120;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 100;
+        
+        velocities[i] = 0.1 + Math.random() * 0.4;
+        
+        const mix = colorA.clone().lerp(colorB, Math.random());
+        colors[i * 3] = mix.r;
+        colors[i * 3 + 1] = mix.g;
+        colors[i * 3 + 2] = mix.b;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
     const material = new THREE.PointsMaterial({
-        size: 0.8,
+        size: 0.5,
         vertexColors: true,
         transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending,
-        sizeAttenuation: true
+        opacity: 0.4,
+        blending: THREE.AdditiveBlending
     });
 
-    const droplets = new THREE.Points(geometry, material);
-    scene.add(droplets);
+    const points = new THREE.Points(geometry, material);
+    scene.add(points);
+
+    // Subtle Grid Floor
+    const grid = new THREE.GridHelper(200, 40, COLORS.cyan, '#111');
+    grid.position.y = -50;
+    grid.material.opacity = 0.1;
+    grid.material.transparent = true;
+    scene.add(grid);
 
     function animate() {
         requestAnimationFrame(animate);
-        const positions = droplets.geometry.attributes.position.array;
-        for (let i = 0; i < dropletCount; i++) {
-            positions[i * 3 + 1] -= 0.3 + (i % 5) * 0.05;
-            if (positions[i * 3 + 1] < -40) resetDroplet(i);
+        const pos = points.geometry.attributes.position.array;
+        for (let i = 0; i < count; i++) {
+            pos[i * 3 + 1] -= velocities[i];
+            if (pos[i * 3 + 1] < -60) {
+                pos[i * 3 + 1] = 60;
+            }
         }
-        droplets.geometry.attributes.position.needsUpdate = true;
-        droplets.rotation.y += 0.002;
+        points.geometry.attributes.position.needsUpdate = true;
+        points.rotation.y += 0.001;
         renderer.render(scene, camera);
     }
     animate();
@@ -93,7 +99,7 @@ window.initHero = function() {
 };
 
 // ============================================
-// 2. MATRIX VISUALIZATION (Interactive 01)
+// 2. MATRIX VISUALIZATION - GAUSSIAN PIVOTING
 // ============================================
 window.matrixViz = {
     unknowns: 4,
