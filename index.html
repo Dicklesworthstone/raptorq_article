@@ -1093,6 +1093,142 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	    <div class="section-divider"></div>
 
+	    <!-- Section 10: RaptorQ in the Wild -->
+	    <section class="editorial-container">
+	        <h2 class="section-title">RaptorQ in the Wild</h2>
+	        <p>
+	            The mathematics above isn't academic. RaptorQ is deployed at scale in systems serving billions of devices—and increasingly, in projects that treat fountain codes not as a networking curiosity but as a foundational primitive.
+	        </p>
+
+	        <!-- 3G/4G/5G Cellular -->
+	        <h3 class="text-3xl font-bold text-white mt-16 mb-6">The Cellular Standard</h3>
+	        <p>
+	            In 2005, the 3GPP consortium faced a problem: delivering video, firmware updates, and emergency alerts to millions of handsets simultaneously over cellular. Traditional unicast—one connection per device—doesn't scale. You can't open a million TCP sessions from a single cell tower. The answer was <strong>MBMS</strong> (Multimedia Broadcast/Multicast Service), and MBMS needed an FEC layer that could handle massive fan-out over a lossy wireless channel with zero back-channel.
+	        </p>
+	        <p>
+	            They chose Raptor codes—later upgraded to RaptorQ. The specification is <strong>3GPP TS 26.346</strong>, and it makes RaptorQ the mandatory FEC scheme for file delivery and streaming. Every compliant LTE and 5G modem on Earth implements it.
+	        </p>
+
+	        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 mb-12">
+	            <div class="insight-card !my-0 !bg-gradient-to-b from-blue-950/40 to-slate-900/40 border border-blue-500/10">
+	                <h4 class="text-blue-400 font-bold mb-3 text-lg">3G/4G: MBMS &amp; eMBMS</h4>
+	                <p class="text-sm text-slate-400 leading-relaxed mb-0">
+	                    The original MBMS spec and its evolved form (eMBMS) use RaptorQ for one-to-many file delivery. A cell tower broadcasts encoded symbols; handsets tune in, collect enough, and decode. No ACKs, no per-device state. KT Korea deployed this during the 2018 PyeongChang Olympics to stream 4K video to stadiums full of phones. Verizon's go90 service used eMBMS to push live video without saturating unicast capacity.
+	                </p>
+	            </div>
+	            <div class="insight-card !my-0 !bg-gradient-to-b from-purple-950/40 to-slate-900/40 border border-purple-500/10">
+	                <h4 class="text-purple-400 font-bold mb-3 text-lg">5G Broadcast (5G-BC)</h4>
+	                <p class="text-sm text-slate-400 leading-relaxed mb-0">
+	                    5G NR continues the tradition. 3GPP Release 16+ defines 5G Broadcast with RaptorQ as the application-layer FEC. The use cases have expanded: connected car firmware updates (BMW and Audi have tested eMBMS for over-the-air updates), IoT fleet provisioning, and emergency alert distribution. A single broadcast stream can push a critical patch to every vehicle in a city simultaneously.
+	                </p>
+	            </div>
+	            <div class="insight-card !my-0 !bg-gradient-to-b from-cyan-950/40 to-slate-900/40 border border-cyan-500/10">
+	                <h4 class="text-cyan-400 font-bold mb-3 text-lg">ATSC 3.0 (NextGen TV)</h4>
+	                <p class="text-sm text-slate-400 leading-relaxed mb-0">
+	                    The next-generation digital television standard adopted RaptorQ for over-the-air file delivery via the ROUTE protocol. Real deployments include WHUT-TV datacasting in Washington, D.C. and New Mexico PBS distributing emergency alert data. The key insight: a TV transmitter is the ultimate one-to-many channel, and RaptorQ turns it into an efficient file delivery system.
+	                </p>
+	            </div>
+	        </div>
+
+	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30">
+	            <p class="text-slate-300 text-sm mb-0">
+	                <strong class="text-white">The common thread:</strong> Every deployment above exploits the same property. The sender doesn't know (or care) how many receivers exist, which symbols each receiver has, or when each receiver started listening. It just sprays symbols. Each receiver independently collects and decodes. This is the "coordination-free" property from the math—\(K\) distinct evaluations of a degree \(K{-}1\) polynomial determine it uniquely, regardless of <em>which</em> evaluations you have.
+	            </p>
+	        </div>
+
+	        <!-- Author's Projects -->
+	        <h3 class="text-3xl font-bold text-white mt-20 mb-4">Beyond Networking: Fountain Codes as a Systems Primitive</h3>
+	        <p>
+	            The deployments above use RaptorQ the way its inventors intended—as a network transport layer. But what happens when you treat fountain codes not as a wire protocol but as a <em>foundational abstraction</em> for building systems? Three projects by the author of this article explore that question.
+	        </p>
+
+	        <!-- AsuperSync -->
+	        <div class="insight-card !bg-gradient-to-br from-emerald-950/30 via-slate-900/40 to-slate-900/40 border border-emerald-500/15 mt-12">
+	            <div class="flex items-center gap-3 mb-4">
+	                <span class="text-xs font-mono uppercase tracking-widest text-emerald-400/70 bg-emerald-400/10 px-2.5 py-1 rounded">Rust Library</span>
+	                <a href="https://github.com/Dicklesworthstone/asupersync" target="_blank" class="text-emerald-400 hover:text-emerald-300 text-sm font-mono transition-colors">asupersync &rarr;</a>
+	            </div>
+	            <h4 class="text-white font-bold text-xl mb-3">A Ground-Up RFC 6330 Implementation for Distributed Runtimes</h4>
+	            <p class="text-slate-300 leading-relaxed mb-4">
+	                Asupersync is a spec-first async runtime for Rust with a complete, from-scratch RaptorQ implementation. The <code class="text-emerald-400/80">src/raptorq/</code> module spans 10 files: GF(256) arithmetic with precomputed 64KB multiplication tables, systematic encoding with LDPC/HDPC/LT constraint matrices, a two-phase inactivation decoder (peeling first, then Gaussian elimination over the dense core), and deterministic decode proofs for auditable recovery.
+	            </p>
+	            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+	                The key application: <strong>distributed state recovery</strong>. When a runtime "region" (the structured concurrency unit) needs to persist its state across a cluster, it doesn't fully replicate to every node. Instead, the region snapshot is erasure-coded into symbols and distributed via consistent hashing. Recovery requires collecting any \(K\) symbols from surviving nodes—it doesn't matter which \(K\). Storage overhead drops from \(N{\times}\) full replication to roughly \(1.2{\times}\), while fault tolerance <em>increases</em>.
+	            </p>
+	            <div class="grid grid-cols-2 gap-4">
+	                <div class="text-xs text-slate-500 bg-slate-800/30 rounded-lg p-3">
+	                    <span class="text-emerald-400/70 font-bold">Encoding</span><br>
+	                    Systematic RaptorQ with configurable repair overhead (default 20%). Source symbols are the original data; repair symbols are GF(256) linear combinations.
+	                </div>
+	                <div class="text-xs text-slate-500 bg-slate-800/30 rounded-lg p-3">
+	                    <span class="text-emerald-400/70 font-bold">Distribution</span><br>
+	                    Consistent hash ring maps symbols to replicas. Quorum semantics (One, Quorum, All) control durability/latency tradeoffs.
+	                </div>
+	            </div>
+	        </div>
+
+	        <!-- FrankenSQLite -->
+	        <div class="insight-card !bg-gradient-to-br from-amber-950/30 via-slate-900/40 to-slate-900/40 border border-amber-500/15 mt-8">
+	            <div class="flex items-center gap-3 mb-4">
+	                <span class="text-xs font-mono uppercase tracking-widest text-amber-400/70 bg-amber-400/10 px-2.5 py-1 rounded">Rust &middot; 23-Crate Workspace</span>
+	                <a href="https://github.com/Dicklesworthstone/frankensqlite" target="_blank" class="text-amber-400 hover:text-amber-300 text-sm font-mono transition-colors">frankensqlite &rarr;</a>
+	            </div>
+	            <h4 class="text-white font-bold text-xl mb-3">A Self-Healing SQLite with Fountain Codes at Every Layer</h4>
+	            <p class="text-slate-300 leading-relaxed mb-4">
+	                FrankenSQLite is a ground-up Rust reimplementation of SQLite that embeds RaptorQ into every persistent layer. The premise: data corruption shouldn't be a failure mode you <em>mitigate</em>—it should be a mathematical near-impossibility. Standard SQLite WAL recovery truncates at the first corrupted frame, discarding all subsequent committed data. FrankenSQLite instead generates repair symbols for each commit group and stores them in a <code class="text-amber-400/80">.wal-fec</code> sidecar.
+	            </p>
+	            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+	                <div class="bg-slate-800/30 rounded-lg p-4">
+	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">WAL Self-Healing</h5>
+	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
+	                        Each committed transaction's pages become \(K\) source symbols. \(R\) repair symbols (default \(R{=}2\)) are generated asynchronously and stored in the sidecar. On recovery, corrupted frames are identified by per-page XXH3-128 checksums; valid source + repair symbols feed the decoder. Failure probability at \(K{+}2\): approximately \(10^{-7}\).
+	                    </p>
+	                </div>
+	                <div class="bg-slate-800/30 rounded-lg p-4">
+	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">Database-Level FEC</h5>
+	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
+	                        A separate <code class="text-amber-400/60">.db-fec</code> sidecar protects the main database file. Page 1 (the header) gets 400% redundancy. Remaining pages are grouped in 64-page chunks with 6.25% overhead. Corrupted pages are reconstructed on read—transparently, without user intervention.
+	                    </p>
+	                </div>
+	                <div class="bg-slate-800/30 rounded-lg p-4">
+	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">Fountain-Coded Snapshots</h5>
+	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
+	                        Full database transfers use RaptorQ's rateless property. The database is partitioned into source blocks respecting RFC 6330's \(K_{\max}{=}56{,}403\) limit and streamed as a continuous fountain over UDP. Receivers start at any point, resume after disconnection without renegotiation, and a single sender stream serves \(N\) receivers simultaneously.
+	                    </p>
+	                </div>
+	                <div class="bg-slate-800/30 rounded-lg p-4">
+	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">Durability Guarantees</h5>
+	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
+	                        For \(K\) source symbols with \(R\) repair symbols and independent per-symbol corruption probability \(p{=}10^{-4}\): the probability of data loss drops below \(10^{-5K}\). For a 1,000-page database, that's below \(10^{-5000}\)—a number that transcends "nines of availability" entirely.
+	                    </p>
+	                </div>
+	            </div>
+	        </div>
+
+	        <!-- Flywheel Connectors -->
+	        <div class="insight-card !bg-gradient-to-br from-sky-950/30 via-slate-900/40 to-slate-900/40 border border-sky-500/15 mt-8">
+	            <div class="flex items-center gap-3 mb-4">
+	                <span class="text-xs font-mono uppercase tracking-widest text-sky-400/70 bg-sky-400/10 px-2.5 py-1 rounded">Mesh Protocol</span>
+	                <a href="https://github.com/Dicklesworthstone/flywheel_connectors" target="_blank" class="text-sky-400 hover:text-sky-300 text-sm font-mono transition-colors">flywheel_connectors &rarr;</a>
+	            </div>
+	            <h4 class="text-white font-bold text-xl mb-3">A Symbol-First Mesh Protocol for AI Agent Networks</h4>
+	            <p class="text-slate-300 leading-relaxed mb-4">
+	                The Flywheel Connector Protocol (FCP) takes the fountain code idea to its logical extreme: <strong>there are no files on the wire, only symbols</strong>. Data is encoded into RaptorQ symbols before it ever leaves a device. The symbols are distributed across a Tailscale mesh, encrypted per-zone with capability-based access control. Reconstruction happens lazily, at the receiver, when enough symbols accumulate.
+	            </p>
+	            <p class="text-slate-400 text-sm leading-relaxed mb-4">
+	                This "symbol-first" architecture exploits three RaptorQ properties simultaneously: <strong>multipath aggregation</strong> (symbols arriving from different network paths contribute equally—no retransmission coordination), <strong>offline resilience</strong> (partial symbol availability enables partial reconstruction; data availability becomes probabilistic rather than binary), and <strong>diffuse failure</strong> (no single symbol is critical, so attackers can't target "important" chunks). Each FCPS frame carries a 114-byte header with object ID, zone key ID, epoch, and sender identity—making every symbol self-describing and independently useful.
+	            </p>
+	        </div>
+
+	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30 mt-10">
+	            <p class="text-slate-300 text-sm mb-0">
+	                <strong class="text-white">The pattern across all three projects:</strong> RaptorQ stops being a "network layer" and becomes an <em>information substrate</em>. In FrankenSQLite, every page on disk is fountain-coded. In asupersync, every runtime state checkpoint is fountain-coded. In Flywheel Connectors, every object in transit is fountain-coded. The "any \(K\) of \(N\)" property isn't just for surviving packet loss—it's for building systems where data integrity is a mathematical invariant, not a best-effort aspiration.
+	            </p>
+	        </div>
+	    </section>
+
+	    <div class="section-divider"></div>
+
 	    <!-- Closing Insight -->
 	    <section class="editorial-container pb-32">
 	        <p class="text-3xl font-bold text-center text-white my-16 leading-tight max-w-3xl mx-auto">
