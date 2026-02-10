@@ -78,16 +78,16 @@
                 @apply border-l-4 border-purple-500/50 pl-8 py-4 my-10 italic text-slate-200 text-2xl font-serif bg-gradient-to-r from-purple-500/5 to-transparent rounded-r-xl leading-snug;
             }
             .viz-container {
-                @apply w-full my-12 rounded-3xl border border-white/10 bg-[#08080a] relative overflow-hidden flex flex-col;
+                @apply w-full my-12 rounded-3xl border border-white/10 bg-[#08080a] relative overflow-hidden flex flex-col shadow-[0_0_100px_-20px_rgba(34,211,238,0.05)];
             }
             .viz-header {
-                @apply p-6 border-b border-white/5 flex justify-between items-center bg-white/[0.02];
+                @apply p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02] backdrop-blur-md;
             }
             .btn-action {
-                @apply px-6 py-2.5 bg-cyan-500 text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-full hover:bg-cyan-400 transition-all;
+                @apply px-8 py-3 bg-cyan-500 text-black font-black text-[11px] uppercase tracking-[0.2em] rounded-full hover:bg-cyan-400 hover:scale-105 active:scale-95 transition-all duration-500;
             }
             .btn-secondary {
-                @apply px-6 py-2.5 bg-transparent border border-white/20 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-full hover:border-white transition-all;
+                @apply px-8 py-3 bg-transparent border border-white/20 text-white font-black text-[11px] uppercase tracking-[0.2em] rounded-full hover:border-white hover:bg-white/5 transition-all duration-500;
             }
             .sidebar-note {
                 @apply text-base text-slate-500 border-l-2 border-slate-800 pl-6 ml-6 italic my-6 block leading-relaxed;
@@ -98,22 +98,28 @@
             
             /* Enhanced Data Grid */
             .data-grid-cell {
-                @apply w-9 h-9 rounded-lg flex items-center justify-center font-mono text-xs transition-all duration-500 border border-white/5 relative overflow-hidden;
+                @apply w-10 h-10 rounded-xl flex items-center justify-center font-mono text-sm transition-all duration-500 border border-white/5 relative overflow-hidden;
             }
-            .cell-1 { @apply bg-cyan-500/20 text-cyan-300 border-cyan-500/30; }
+            .cell-1 { @apply bg-cyan-500/20 text-cyan-300 border-cyan-500/30 shadow-[0_0_20px_rgba(34,211,238,0.15)]; }
             .cell-0 { @apply bg-white/5 text-slate-700; }
-            .cell-pivot { @apply ring-2 ring-cyan-400 ring-offset-2 ring-offset-black z-10; }
+            .cell-pivot { @apply ring-4 ring-cyan-400 ring-offset-4 ring-offset-black z-10; }
             
             .viz-overlay-stats {
-                @apply absolute top-6 right-6 flex flex-col gap-2 text-right pointer-events-none z-20;
+                @apply absolute top-10 right-10 flex flex-col gap-4 text-right pointer-events-none z-20;
             }
             .stat-value {
-                @apply text-3xl font-black text-white leading-none tracking-tighter;
+                @apply text-4xl font-black text-white leading-none tracking-tighter;
             }
             .stat-label {
-                @apply text-[9px] uppercase tracking-[0.3em] text-slate-500 font-bold;
+                @apply text-[10px] uppercase tracking-[0.3em] text-slate-500 font-bold;
+            }
+            
+            /* Tooltip */
+            .info-tooltip {
+                @apply invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 p-4 bg-slate-900 border border-white/10 rounded-2xl text-xs text-slate-400 shadow-2xl z-50 leading-relaxed;
             }
         }
+    </style>
     </style>
 </head>
 <body>
@@ -140,7 +146,7 @@
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-500 drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">Liquid Data.</span>
             </h1>
 	        <p class="text-2xl md:text-3xl text-slate-400 max-w-3xl mx-auto leading-tight mt-12 font-light">
-	                How a sparse matrix, a small dense core, and a precode turn any file into a stream of fungible packets, recoverable from <span class="text-white font-medium italic">K + 2</span> of them.
+	                Turn any file into an infinite stream of interchangeable packets. Collect any K of them, in any order, and recover the original. The overhead: about <span class="text-white font-medium italic">0.02%</span>.
 	        </p>
         </div>
         
@@ -153,27 +159,23 @@
     <!-- Intro -->
     <article class="editorial-container">
         <p class="drop-cap">
-            Suppose you are trying to stream a 4K video to a Mars rover. The round-trip latency is 40 minutes. Or perhaps you are broadcasting a critical firmware update to a million cars simultaneously over a patchy cellular network.
+            I find the existence of RaptorQ genuinely shocking. The idea that you can take an arbitrary file, turn it into a stream of fungible blobs, receive those blobs in any order, and have each new one help you reconstruct the original already seems pretty impressive. But then you learn that the overhead for all of this is something like 0.02%, and that seems both magical and wildly improbable. I've spent a lot of time trying to understand how it actually works, and this article is my attempt to lay out the one clever idea that makes it possible.
         </p>
         <p>
-            TCP, the traditional way we move data, is fundamentally a conversation. "I sent packet 4." "I didn't get packet 4." "Okay, resending packet 4." "Okay, got it." This conversational model works fine for loading a webpage, but it falls apart at scale or extreme latency. It requires a feedback loop. It requires the sender to know exactly what the receiver is missing.
+            To see why this matters, think about how we normally move data. TCP is fundamentally a conversation: "I sent packet 4." "I didn't get packet 4." "Okay, resending packet 4." "Got it." That works fine for loading a webpage, but it falls apart when latency is high (try a 40-minute round trip to Mars) or when you're broadcasting to a million receivers at once over lossy cellular. TCP requires a feedback loop. The sender has to know exactly what the receiver is missing.
         </p>
         <p>
-            But imagine a different world. Imagine you don't care about "Packet #4." Imagine you could turn your file into a <strong class="text-cyan-300 shadow-cyan-500/20 drop-shadow-sm">mathematical liquid</strong>. You open the valve and spray packets at the receiver. The receiver is just a bucket. It doesn't matter <em>which</em> drops of liquid land in the bucket. It doesn't matter if half the spray blows away in the wind.
+            RaptorQ does something completely different. You turn your file into a <strong class="text-cyan-300 shadow-cyan-500/20 drop-shadow-sm">mathematical liquid</strong> and just spray packets at the receiver. The receiver is a bucket. It doesn't matter which drops land in it, and it doesn't matter if half the spray blows away in the wind. As soon as the bucket has roughly \(K+\epsilon\) drops (not any <em>particular</em> drops, just enough of them), the receiver reconstructs the original data.
         </p>
-	        <p>
-	            As soon as the bucket is full, roughly \(K+\epsilon\) drops (a tiny overhead) rather than a particular set, the receiver reconstructs the data.
-	        </p>
         
         <div class="insight-card group">
             <div class="absolute -right-10 -top-10 opacity-5 group-hover:opacity-10 transition-opacity duration-1000 rotate-12 scale-150">
                 <svg width="400" height="400" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
             </div>
             <div class="relative z-10">
-	            <h3 class="text-3xl font-bold text-white mb-6">The Impossible Promise</h3>
+	            <h3 class="text-3xl font-bold text-white mb-6">How Good Is It, Exactly?</h3>
 	            <p class="text-slate-400 text-lg mb-0 leading-relaxed">
-	                This is <strong>RaptorQ (RFC 6330)</strong>. The RFC has a SHALL-level decoder requirement: if you receive encoding symbols whose IDs are chosen uniformly at random, the <em>average</em> decode failure rate must be at most 1/100 when receiving \(K'\) symbols, 1/10,000 at \(K'+1\), and 1/1,000,000 at \(K'+2\).<br/><br/>
-	                At \(K \approx 10{,}000\), two extra symbols is about <span class="text-cyan-400 font-mono font-bold">0.02%</span> overhead.
+	                This is codified in <strong>RaptorQ (RFC 6330)</strong>. The RFC has a SHALL-level decoder requirement: if you receive encoding symbols whose IDs are chosen uniformly at random, the <em>average</em> decode failure rate must be at most 1 in 100 when receiving \(K'\) symbols, 1 in 10,000 at \(K'+1\), and 1 in 1,000,000 at \(K'+2\). To be clear about what that means: at \(K \approx 10{,}000\), two extra symbols is about <span class="text-cyan-400 font-mono font-bold">0.02%</span> overhead. That's it. That's the tax you pay for all of this magic.
 	            </p>
             </div>
 	        </div>
@@ -185,13 +187,13 @@
     <section class="editorial-container">
         <h2 class="section-title">What You May Already Know</h2>
         <p>
-            If you've ever used <strong>PAR2 files</strong> to repair a corrupted download, or relied on RAID 5 to survive a dead drive, you've already seen the seed of this idea. PAR2 uses Reed-Solomon codes to generate repair blocks from your original data. Lose a few files? Throw in some <code>.par2</code> recovery blocks, and the repair tool reconstructs the missing pieces. Any recovery block helps; you don't need specific ones.
+            If you've ever used <strong>PAR2 files</strong> to repair a corrupted download, or relied on RAID 5 to survive a dead drive, you've already bumped into this idea in a simpler form. PAR2 uses Reed-Solomon codes to generate repair blocks from your original data. Lose a few files? Throw in some <code>.par2</code> recovery blocks and the repair tool reconstructs the missing pieces. Any recovery block helps; you don't need specific ones.
         </p>
         <p>
             Reed-Solomon is powerful. It achieves what coding theorists call <strong>MDS</strong> (Maximum Distance Separable) behavior: any \(K\) of \(K+R\) encoded symbols perfectly reconstruct \(K\) source symbols. Zero overhead. Mathematically optimal.
         </p>
         <p>
-            So why isn't this the end of the story? Two problems:
+            So why do we need anything else? Two problems:
         </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mt-12 mb-16">
             <div class="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-[2rem] p-10 transition-all duration-500 hover:border-cyan-500/30 group">
@@ -221,10 +223,10 @@
     <section class="editorial-container">
         <h2 class="section-title">Packets Are Equations</h2>
         <p>
-            To understand why this isn't magic, we have to stop looking at packets as "chunks of a file" and start looking at them as <strong>Linear Equations</strong>.
+            Everything in this article rests on one mental shift: stop thinking of packets as "chunks of a file" and start thinking of them as <strong>linear equations</strong>. Once you do that, a lot of things click into place.
         </p>
         <p>
-            Let's make it concrete. Suppose your file is four bytes: <code>A=5</code>, <code>B=3</code>, <code>C=7</code>, <code>D=2</code>. Instead of sending those four values directly, you generate encoded packets by XORing subsets:
+            Suppose your file is four bytes: <code>A=5</code>, <code>B=3</code>, <code>C=7</code>, <code>D=2</code>. Instead of sending those four values directly, you generate encoded packets by XORing subsets:
         </p>
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12 font-mono text-sm text-slate-300 leading-relaxed overflow-x-auto">
             <span class="text-slate-500">Packet 1:</span> A ⊕ C = 5 ⊕ 7 = <span class="text-cyan-400">2</span> &nbsp;&nbsp;<span class="text-slate-600">[1,0,1,0]</span><br/>
@@ -236,7 +238,7 @@
             Each packet is a linear equation over the unknowns <code>[A,B,C,D]</code>, and the binary vector says which symbols participate. The receiver who collects any four independent packets can solve the system by Gaussian elimination, XOR-ing rows until each unknown is isolated, and recover <code>A=5, B=3, C=7, D=2</code>. It doesn't matter <em>which</em> four arrived, only that they're linearly independent.
         </p>
         <p>
-            This is the core reframing: every packet is an equation, and recovering a file is solving a linear system. In a standard file transfer, each packet is a trivial equation:
+            In other words, every packet is an equation, and recovering a file means solving a linear system. In a standard file transfer, each packet is a trivial equation (it just tells you the value of one specific symbol):
             <br/><span class="block text-center my-10 font-mono text-cyan-400 text-2xl bg-white/[0.03] py-8 rounded-[2rem] border border-white/10 backdrop-blur-xl shadow-2xl">1·x₁ + 0·x₂ + ... + 0·xₖ = Packet₁</span>
         </p>
         <p>
@@ -290,7 +292,7 @@
 	    <section class="editorial-container">
 	        <h2 class="section-title">What RaptorQ Promises</h2>
 	        <p>
-	            If you compress RFC 6330 into three adjectives, you get: <strong>rateless</strong>, <strong>systematic</strong>, and <strong>near-MDS</strong>.
+	            RFC 6330 makes three promises, and they're worth stating precisely: <strong>rateless</strong>, <strong>systematic</strong>, and <strong>near-MDS</strong>.
 	        </p>
 	        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
 	            <div class="insight-card !my-0 !p-8 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -313,7 +315,7 @@
 	            </div>
 	        </div>
 	        <p class="text-slate-400 text-sm leading-relaxed mt-10">
-	            The important nuance: it is not saying <em>every</em> adversarially-chosen set of \(K\) packets works. It says <em>almost any</em> set of \(K\) or \(K+\epsilon\) packets works when packets are generated according to the standard's deterministic randomness.
+	            One nuance worth being precise about: the guarantee is not that <em>every</em> adversarially-chosen set of \(K\) packets works. It's that <em>almost any</em> set of \(K\) or \(K+\epsilon\) packets works, when packets are generated according to the standard's deterministic randomness.
 	        </p>
 	    </section>
 
@@ -321,7 +323,7 @@
 	    <section class="editorial-container">
 	        <h2 class="section-title">The Coupon Collector's Tax</h2>
         <p>
-            If the idea is just "send random linear equations," why didn't we do this 50 years ago? It's called <strong>Random Linear Network Coding</strong>, and it works perfectly. But there is a catch, and it creates the central dilemma of fountain code design:
+            If the idea is just "send random linear equations," you might wonder why nobody did this 50 years ago. The approach has a name: <strong>Random Linear Network Coding</strong>, and it does work perfectly, in theory. The catch is computational, and it creates the central dilemma of fountain code design:
         </p>
         <p class="text-2xl font-bold text-center text-white my-14 leading-tight">
             Dense equations = solvable but slow.<br/>
@@ -351,7 +353,7 @@
         </div>
 
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12">
-            <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-4">The Probability You Should Tattoo On Your Intuition</div>
+            <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-4">The Core Probability</div>
             <p class="text-slate-300 text-sm leading-relaxed mb-4">
                 Suppose each encoded packet touches exactly \(d\) randomly chosen source symbols. After receiving \(n\) packets, you've made about \(d \cdot n\) random "touches" across \(K\) symbols. Pick one specific symbol \(x_i\). The probability it was <em>never</em> touched is:
             </p>
@@ -372,7 +374,7 @@
 	            We want something that behaves like \(K + O(1)\), not \(K \log K\).
 	        </p>
 	        <p>
-	            The whole story of fountain code design is threading this needle. Dense equations give you solvability but \(O(K^3)\) decoding. Sparse equations give you speed but the coupon collector's log tax on overhead. It seemed like a fundamental tradeoff.
+	            The entire history of fountain code design is about threading this needle. Dense equations give you solvability but \(O(K^3)\) decoding. Sparse equations give you speed but the coupon collector's log tax on overhead. For years it looked like a fundamental tradeoff.
 	        </p>
 	    </section>
 
@@ -382,8 +384,8 @@
 	    <section class="editorial-container">
 	        <h2 class="section-title">LT Codes: The Ripple</h2>
 	        <p>
-	            LT codes (Luby, 2002) were the first practical fountain codes, and their core move is surprisingly simple: <strong>don't pick a fixed degree</strong>.
-	            For each packet, you choose a degree \(d\) (how many symbols to XOR together) from a carefully shaped distribution, then XOR those \(d\) symbols.
+	            LT codes (Luby, 2002) were the first practical fountain codes. The core move is simple: <strong>don't pick a fixed degree</strong>.
+	            For each packet, you draw a degree \(d\) (how many symbols to XOR together) from a carefully shaped distribution, then XOR those \(d\) symbols.
 	        </p>
 
 		        <div class="insight-card">
@@ -482,22 +484,22 @@
 
 	    <!-- Section 3: The Wildly Clever Idea -->
 	    <section class="editorial-container">
-	        <h2 class="section-title">The "Aha!" Moment</h2>
+	        <h2 class="section-title">The One Clever Idea</h2>
         <p>
-            This is where <strong>RaptorQ</strong> pulls its "black magic" trick. The insight is so simple it's almost embarrassing:
+            OK, so here is the part I find most interesting, and it's the thing that took me the longest to appreciate. The idea is simple once you see it:
         </p>
         <p class="text-3xl font-bold text-center text-white my-16 leading-tight">
-            Don't try to make the fountain code perfect.<br/>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Make it sloppy, then clean up the mess.</span>
+            Don't make the fountain code perfect.<br/>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Let it be sloppy. Clean up with a second code.</span>
         </p>
         <p>
-            Instead of trying to recover 100% of the symbols using the sparse fountain code (which incurs an expensive tail), we only ask the fountain code to recover <strong>97%</strong> of the symbols.
+            Instead of trying to recover 100% of the symbols from the sparse fountain code (which, as we just saw, incurs that expensive coupon-collector tail), you only ask the fountain code to recover about <strong>97%</strong> of symbols.
         </p>
         <p>
-            Getting to 97% is easy. It costs \(O(K)\). The curve is steep at the beginning. It's only the "tail", the last few stubborn symbols, that is expensive. So we simply truncate the tail.
+            Getting to 97% is easy and costs \(O(K)\) time. The curve is steep at the beginning; it's only the tail, the last few stubborn symbols, that gets expensive. So you just... don't bother with the tail.
         </p>
 	        <p>
-	            But wait, we need 100% of the file. So, <em>before</em> we start the fountain process, we take our source file and apply a <strong>Precode</strong>. We expand the file by a tiny amount (say, 3%) using a high-density erasure code.
+	            Obviously you still need 100% of the file. So <em>before</em> the fountain process starts, you take the source file and apply a <strong>precode</strong>: you expand it by a tiny amount (say, 3%) using a high-density erasure code.
 	        </p>
 	        <p>
 	            In RaptorQ, that precode is layered: a sparse LDPC-style part (cheap XOR constraints) plus a small, denser HDPC "insurance" part (where the spec leans on GF(256) to crush rank failures).
@@ -520,7 +522,7 @@
         </div>
 
         <p>
-            The workflow becomes a two-stage rocket:
+            The workflow has two stages:
         </p>
         <ol class="list-decimal list-inside space-y-4 text-slate-300 ml-4 mb-12 border-l border-white/10 pl-6">
             <li><strong>The Precode (Insurance):</strong> Expand source \(K\) to Intermediate \(L\) (adding ~3% structured redundancy).</li>
@@ -539,11 +541,11 @@
 		    <section class="editorial-container">
 		        <h2 class="section-title">What's Actually Being Solved</h2>
 		        <p>
-		            One detail that's easy to miss: RaptorQ doesn't directly solve for your raw source symbols.
+		            One detail I glossed over: RaptorQ doesn't directly solve for your raw source symbols.
 	            It first defines a slightly larger set of <strong>intermediate symbols</strong> \(C[0],\dots,C[L-1]\), then constructs equations that let the decoder recover those \(L\) unknowns.
 	        </p>
 	        <p>
-	            Very roughly, the standard builds a system with:
+	            Roughly, the standard builds a system with:
 	        </p>
 	        <ul class="list-disc list-inside space-y-2 text-slate-300 ml-4 mb-10">
 	            <li><strong>LT constraints (sparse):</strong> the fountain layer equations (peel-friendly).</li>
@@ -614,13 +616,13 @@
 		    <section class="editorial-container">
 		        <h2 class="section-title">Peeling & Inactivation</h2>
         <p>
-            We've solved the overhead problem. Now, how do we solve the speed problem? How do we solve 50,000 equations in milliseconds?
+            That handles overhead. But how do you actually solve 50,000 equations in milliseconds?
         </p>
         <p>
-            We use a <strong>Peeling Decoder</strong> (also known as Belief Propagation). It works like Sudoku.
+            The answer is a <strong>Peeling Decoder</strong> (also known as Belief Propagation), and it works like Sudoku.
         </p>
         <p>
-            You look for an equation with only <strong>one unknown</strong>. You solve it instantly. Then you "peel" that known value out of all other equations (by XORing it into them). This might reduce a complex equation to a single-unknown equation. You solve that one. The process cascades.
+            You scan for an equation with only <strong>one unknown</strong>. You solve it instantly. Then you "peel" that known value out of all other equations (by XORing it into them). This might reduce some other equation to a single unknown. You solve that one too. The process cascades.
         </p>
         
         <div class="viz-container" id="viz-peeling">
@@ -641,7 +643,7 @@
         </div>
 
         <p>
-            But what if the peeling stalls? What if every remaining equation depends on at least 2 unknowns? Consider a concrete example of a <strong>stopping set</strong>:
+            But what happens when peeling stalls? When every remaining equation depends on at least 2 unknowns? Consider a concrete <strong>stopping set</strong>:
         </p>
         <div class="bg-black/50 border border-white/5 rounded-2xl p-6 my-12">
             <div class="text-xs text-slate-500 uppercase tracking-widest font-bold mb-3">A Stuck System (The 2-Core)</div>
@@ -657,7 +659,7 @@
             </p>
         </div>
 	        <p>
-	            This is where RaptorQ introduces <strong>Inactivation Decoding</strong>. Instead of giving up, the algorithm picks a variable, say <code>A</code>, marks it as "Inactive" (essentially saying, "I'll deal with you later"), and treats it as a known quantity for now. Suddenly <code>y₁ = A ⊕ B</code> has only one unknown (<code>B</code>), which triggers a cascade that peels the entire cycle. At the end, only <code>A</code> remains, solved via a tiny dense system.
+	            RaptorQ's answer is <strong>Inactivation Decoding</strong>. Instead of giving up, the algorithm picks a variable, say <code>A</code>, marks it as "Inactive" (essentially: "I'll deal with you later"), and treats it as a known quantity for now. Suddenly <code>y₁ = A ⊕ B</code> has only one unknown (<code>B</code>), which triggers a cascade that peels the entire cycle. At the end, only <code>A</code> remains, solved via a tiny dense system.
 	        </p>
 		        <p>
 		            At the end, you are left with a tiny "core" of Inactive variables. You solve this small core using expensive Gaussian Elimination. Because the core is tiny (thanks to the Precode), the cubic cost is confined to a small \(p \times p\) solve, not a full \(K \times K\) one.
@@ -672,7 +674,7 @@
 	            </ol>
 	        </div>
 	        <p>
-	            If this sounds familiar, it should. It's the same <strong>fast path / slow path</strong> pattern that shows up throughout systems engineering: 90–99% of the work is sparse and local (fast). A small amount of global structure handles the rare bad cases (slow). RaptorQ applies that pattern to linear algebra.
+	            This is the same fast-path/slow-path split you see everywhere in systems engineering. The sparse, local work handles 90–99% of the problem cheaply. A small amount of global structure mops up the rare bad cases. RaptorQ just applies that pattern to linear algebra.
 	        </p>
 		    </section>
 
@@ -682,7 +684,7 @@
 	    <section class="editorial-container">
 	        <h2 class="section-title">The Engineering Tricks</h2>
 	        <p>
-	            The story so far is clean: sparse equations for speed, a precode for the tail, inactivation for stalls. The reason it works in production is the <em>engineering</em> around those ideas.
+	            So we have sparse equations for speed, a precode for the tail, and inactivation for stalls. But RaptorQ works in production because of the engineering around those ideas.
 	        </p>
 	        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -749,7 +751,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">Why +2 Packets Changes Everything</h2>
 	        <p>
-	            The RFC 6330 failure rates look almost too good to be true: \(\le 1\%\) at \(K'\), \(\le 0.01\%\) at \(K'+1\), \(\le 10^{-6}\) at \(K'+2\). Two extra packets improve reliability by four orders of magnitude? That demands an explanation.
+	            The RFC 6330 failure rates look almost too good to be true: \(\le 1\%\) at \(K'\), \(\le 0.01\%\) at \(K'+1\), \(\le 10^{-6}\) at \(K'+2\). Two extra packets improve reliability by four orders of magnitude. I found this deeply confusing until I worked through the math.
 	        </p>
 
 	        <h3 class="text-xl font-bold text-white mt-12 mb-6">Two Different Overheads</h3>
@@ -826,7 +828,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">How We Got Here</h2>
 	        <p>
-	            RaptorQ is the polished endpoint of a sequence of tricks that kept attacking the same tradeoff: <em>overhead vs. speed</em>.
+	            RaptorQ didn't appear out of nowhere. It's the endpoint of a 15-year sequence of ideas, each one attacking the same tradeoff: <em>overhead vs. speed</em>.
 	        </p>
 	        <div class="mt-10 border-l border-white/10 pl-6 space-y-10">
 	            <div>
@@ -868,10 +870,10 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">The Cryptographic Cousin</h2>
 	        <p>
-	            Before we compare RaptorQ to other erasure codes, a detour into cryptography is in order. The most illuminating parallel to fountain codes comes from an unexpected place.
+	            Before comparing RaptorQ to other erasure codes, I want to take a detour into cryptography, because it's where I found the most illuminating parallel to fountain codes.
 	        </p>
 	        <p>
-	            In 1979, Adi Shamir (the "S" in RSA) published a scheme for splitting a secret into \(N\) pieces such that any \(K\) of them can reconstruct the secret, but \(K-1\) pieces reveal <em>absolutely nothing</em>. It's called <strong>Shamir's Secret Sharing</strong>, and if you squint, it's doing the same thing as a fountain code, with a very different goal in mind.
+	            In 1979, Adi Shamir (the "S" in RSA) published a scheme for splitting a secret into \(N\) pieces such that any \(K\) of them can reconstruct the secret, but \(K-1\) pieces reveal <em>absolutely nothing</em>. It's called <strong>Shamir's Secret Sharing</strong>, and if you squint, it's doing the same thing as a fountain code, just with a very different goal.
 	        </p>
 
 	        <div class="insight-card">
@@ -974,7 +976,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	        </p>
 
 	        <div class="callout">
-	            If you understand Shamir's Secret Sharing, you're 80% of the way to understanding fountain codes. The leap from "secret sharing" to "erasure coding" is smaller than it appears, and the bridge is the Rank-Nullity Theorem.
+	            If you already understand Shamir's Secret Sharing, you're most of the way to understanding fountain codes. The leap from "secret sharing" to "erasure coding" is smaller than it looks, and the bridge between them is the Rank-Nullity Theorem.
 	        </div>
 	    </section>
 
@@ -984,7 +986,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">RaptorQ vs. The Alternatives</h2>
 	        <p>
-	            The best way to appreciate RaptorQ is to see what it refuses to be.
+	            It helps to see RaptorQ in context. Each alternative makes a different tradeoff.
 	        </p>
 	        <div class="overflow-x-auto my-12">
 	            <table class="min-w-[700px] w-full text-sm text-slate-300 border border-white/10 rounded-2xl overflow-hidden">
@@ -1112,7 +1114,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container pb-16">
 	        <h2 class="section-title">Where RaptorQ Lives</h2>
 	        <p>
-	            RaptorQ's properties (fungible symbols, near-zero overhead, linear-time encoding/decoding, ratelessness) don't just make for elegant theory. They fundamentally change the economics of data distribution in the real world.
+	            Fungible symbols, near-zero overhead, linear-time encoding and decoding, ratelessness: these properties change the economics of data distribution in ways that aren't obvious until you see the deployments.
 	        </p>
 	        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
 	            <div class="insight-card !my-0 !bg-slate-900/50 hover:bg-slate-900 transition-colors">
@@ -1154,13 +1156,13 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	    <section class="editorial-container">
 	        <h2 class="section-title">RaptorQ in the Wild</h2>
 	        <p>
-	            RaptorQ is deployed at scale in systems serving billions of devices, and increasingly in projects that treat fountain codes as a foundational primitive.
+	            I want to look at where RaptorQ actually shows up in practice, both in the standards that mandate it and in some projects where I've used it myself.
 	        </p>
 
 	        <!-- 3G/4G/5G Cellular -->
 	        <h3 class="text-3xl font-bold text-white mt-16 mb-6">The Cellular Standard</h3>
 	        <p>
-	            In 2005, the 3GPP consortium faced a problem: delivering video, firmware updates, and emergency alerts to millions of handsets simultaneously over cellular. Traditional unicast, one connection per device, doesn't scale. You can't open a million TCP sessions from a single cell tower. The answer was <strong>MBMS</strong> (Multimedia Broadcast/Multicast Service), and MBMS needed an FEC layer that could handle massive fan-out over a lossy wireless channel with zero back-channel.
+	            In 2005, the 3GPP consortium needed to deliver video, firmware updates, and emergency alerts to millions of handsets simultaneously over cellular. Traditional unicast (one connection per device) doesn't scale; you can't open a million TCP sessions from a single cell tower. The answer was <strong>MBMS</strong> (Multimedia Broadcast/Multicast Service), and MBMS needed an FEC layer that could handle massive fan-out over a lossy wireless channel with zero back-channel.
 	        </p>
 	        <p>
 	            They chose Raptor codes, later upgraded to RaptorQ. The specification is <strong>3GPP TS 26.346</strong>, and it makes RaptorQ the mandatory FEC scheme for file delivery and streaming. Every compliant LTE and 5G modem on Earth implements it.
@@ -1189,14 +1191,14 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30">
 	            <p class="text-slate-300 text-sm mb-0">
-	                <strong class="text-white">The common thread:</strong> Every deployment above exploits the same property. The sender doesn't know (or care) how many receivers exist, which symbols each receiver has, or when each receiver started listening. It just sprays symbols. Each receiver independently collects and decodes. This is the "coordination-free" property from the math: \(K\) distinct evaluations of a degree \(K{-}1\) polynomial determine it uniquely, regardless of <em>which</em> evaluations you have.
+	                In every case above, the sender doesn't know (or care) how many receivers exist, which symbols each receiver has, or when each receiver started listening. It just sprays symbols. Each receiver independently collects and decodes. That's the coordination-free property from the math: \(K\) distinct evaluations of a degree-\((K{-}1)\) polynomial determine it uniquely, regardless of <em>which</em> evaluations you have.
 	            </p>
 	        </div>
 
 	        <!-- Author's Projects -->
 	        <h3 class="text-3xl font-bold text-white mt-20 mb-4">Beyond Networking: Fountain Codes as a Systems Primitive</h3>
 	        <p>
-	            The deployments above use RaptorQ the way its inventors intended: as a network transport layer. But what happens when you treat fountain codes not as a wire protocol but as a <em>foundational abstraction</em> for building systems? Three projects by the author of this article explore that question.
+	            The deployments above all use RaptorQ the way its inventors intended: as a network transport layer. I've been more interested in what happens when you treat fountain codes as a general-purpose building block. Here are three of my projects that do that.
 	        </p>
 
 	        <!-- AsuperSync -->
@@ -1256,7 +1258,7 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	                <div class="bg-slate-800/30 rounded-lg p-4">
 	                    <h5 class="text-amber-400/80 font-bold text-sm mb-2">Durability Guarantees</h5>
 	                    <p class="text-xs text-slate-400 leading-relaxed mb-0">
-	                        For \(K\) source symbols with \(R\) repair symbols and independent per-symbol corruption probability \(p{=}10^{-4}\): the probability of data loss drops below \(10^{-5K}\). For a 1,000-page database, that's below \(10^{-5000}\)—a number that transcends "nines of availability" entirely.
+	                        For \(K\) source symbols with \(R\) repair symbols and independent per-symbol corruption probability \(p{=}10^{-4}\): the probability of data loss drops below \(10^{-5K}\). For a 1,000-page database, that's below \(10^{-5000}\), a number so small that "nines of availability" stops being a useful framework.
 	                    </p>
 	                </div>
 	            </div>
@@ -1273,13 +1275,13 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 	                The Flywheel Connector Protocol (FCP) takes the fountain code idea to its logical extreme: <strong>there are no files on the wire, only symbols</strong>. Data is encoded into RaptorQ symbols before it ever leaves a device. The symbols are distributed across a Tailscale mesh, encrypted per-zone with capability-based access control. Reconstruction happens lazily, at the receiver, when enough symbols accumulate.
 	            </p>
 	            <p class="text-slate-400 text-sm leading-relaxed mb-4">
-	                This "symbol-first" architecture exploits three RaptorQ properties simultaneously: <strong>multipath aggregation</strong> (symbols arriving from different network paths contribute equally—no retransmission coordination), <strong>offline resilience</strong> (partial symbol availability enables partial reconstruction; data availability becomes probabilistic rather than binary), and <strong>diffuse failure</strong> (no single symbol is critical, so attackers can't target "important" chunks). Each FCPS frame carries a 114-byte header with object ID, zone key ID, epoch, and sender identity—making every symbol self-describing and independently useful.
+	                This "symbol-first" architecture exploits three RaptorQ properties simultaneously: <strong>multipath aggregation</strong> (symbols arriving from different network paths contribute equally, with no retransmission coordination), <strong>offline resilience</strong> (partial symbol availability enables partial reconstruction; data availability becomes probabilistic rather than binary), and <strong>diffuse failure</strong> (no single symbol is critical, so attackers can't target "important" chunks). Each FCPS frame carries a 114-byte header with object ID, zone key ID, epoch, and sender identity, making every symbol self-describing and independently useful.
 	            </p>
 	        </div>
 
 	        <div class="insight-card !bg-slate-800/30 border border-slate-700/30 mt-10">
 	            <p class="text-slate-300 text-sm mb-0">
-	                <strong class="text-white">The pattern across all three projects:</strong> RaptorQ stops being a "network layer" and becomes an <em>information substrate</em>. In FrankenSQLite, every page on disk is fountain-coded. In asupersync, every runtime state checkpoint is fountain-coded. In Flywheel Connectors, every object in transit is fountain-coded. The "any \(K\) of \(N\)" property extends beyond surviving packet loss. It enables systems where data integrity is a mathematical invariant rather than a best-effort aspiration.
+	                <strong class="text-white">The common thread:</strong> in all three projects, RaptorQ stops being a network layer and becomes something more like a storage primitive. FrankenSQLite fountain-codes every page on disk. Asupersync fountain-codes every runtime checkpoint. Flywheel Connectors fountain-codes every object in transit. The "any \(K\) of \(N\)" property turns out to be useful far beyond surviving packet loss.
 	            </p>
 	        </div>
 	    </section>
@@ -1288,23 +1290,20 @@ y = XOR(C[i] for i in indices) // most coefficients are 0/1 in practice</pre>
 
 	    <!-- Closing Insight -->
 	    <section class="editorial-container pb-32">
-	        <p class="text-3xl font-bold text-center text-white my-16 leading-tight max-w-3xl mx-auto text-balance">
-	            The right mathematical abstraction transforms an apparently intractable problem into a natural one.
+	        <p>
+	            What I find most satisfying about RaptorQ is how much falls out of one structural move. Erasure coding is secretly linear algebra. Linear algebra over finite fields gives you fungibility for free. The hard part is making the matrix sparse enough to solve fast, and the solution turns out to be a simple decomposition: handle the easy 97% with a graph algorithm and the hard 3% with a small dense solve.
 	        </p>
 	        <p>
-	            The trick was recognizing that erasure coding is secretly linear algebra, that linear algebra over finite fields gives you fungibility for free, that the hard part is making the matrix sparse enough to solve fast, and that the solution is a divide-and-conquer strategy: handle the easy 97% with a graph algorithm and the hard 3% with a small amount of dense algebra.
-	        </p>
-	        <p>
-	            Ratelessness, fungibility, near-optimal overhead, linear-time decoding—all of it falls out of one structural move: combine a sparse fountain layer with a dense inner code, and let each do what it's good at. The pattern generalizes. Anywhere you see a seemingly fundamental tradeoff between speed and correctness, ask: is there a Raptor-like decomposition hiding here? A fast, sloppy layer that gets you 97% of the way, and a small, precise layer that cleans up the rest?
+	            Ratelessness, fungibility, near-optimal overhead, linear-time decoding: all of it follows from combining a sparse fountain layer with a dense inner code and letting each do what it's good at. I think this pattern shows up more broadly than people realize. Anywhere you see a seemingly fundamental tradeoff between speed and correctness, it's worth asking whether there's a Raptor-like decomposition hiding in there: a fast, sloppy layer that gets you most of the way, and a small, precise layer that cleans up the rest.
 	        </p>
 	    </section>
 
     <!-- Footer -->
     <footer class="border-t border-white/10 py-24 bg-[#020203]">
         <div class="editorial-container text-center">
-            <h2 class="text-4xl font-bold text-white mb-8">Sparse + Dense. Fast + Correct.</h2>
+            <h2 class="text-4xl font-bold text-white mb-8">RFC 6330</h2>
             <p class="text-slate-500 mb-12 max-w-lg mx-auto">
-                RaptorQ sits at the intersection of Linear Algebra, Graph Theory, and practical Engineering. It powers the 3GPP MBMS standard, ATSC 3.0, and ROUTE/FLUTE-style multicast delivery.
+                Linear algebra, graph theory, and careful engineering. The code behind 3GPP MBMS, ATSC 3.0, and ROUTE/FLUTE multicast delivery.
             </p>
             <div class="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm font-mono uppercase tracking-widest">
                  <a href="https://datatracker.ietf.org/doc/html/rfc6330" target="_blank" class="text-slate-600 hover:text-cyan-400 transition-colors">RFC 6330</a>
